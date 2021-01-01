@@ -52,7 +52,11 @@ class Parser(object):
             start = datetime.now()
 
             logger.info(f"Epoch {epoch} / {args.epochs}:")
-            self._train(train.loader)
+            #if epoch < 2:
+            #    self._train(train.loader)
+            #else:
+                #print('Using margin loss')
+            self._train(train.loader, loss_type='margin')
             loss, dev_metric = self._evaluate(dev.loader)
             logger.info(f"{'dev:':5} loss: {loss:.4f} - {dev_metric}")
             loss, test_metric = self._evaluate(test.loader)

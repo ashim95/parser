@@ -131,7 +131,7 @@ class BiaffineDependencyParser(Parser):
 
         return super().predict(**Config().update(locals()))
 
-    def _train(self, loader):
+    def _train(self, loader, loss_type=None):
         self.model.train()
 
         bar, metric = progress_bar(loader), AttachmentMetric()
@@ -143,7 +143,10 @@ class BiaffineDependencyParser(Parser):
             # ignore the first token of each sentence
             mask[:, 0] = 0
             s_arc, s_rel = self.model(words, feats)
-            loss = self.model.loss(s_arc, s_rel, arcs, rels, mask, self.args.partial)
+            if loss_type == 'margin':
+                loss = self.model.margin_loss(s_arc, s_rel, arcs, rels, mask, self.args.partial)
+            else:
+                loss = self.model.loss(s_arc, s_rel, arcs, rels, mask, self.args.partial)
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.args.clip)
             self.optimizer.step()
@@ -170,6 +173,7 @@ class BiaffineDependencyParser(Parser):
             mask[:, 0] = 0
             s_arc, s_rel = self.model(words, feats)
             loss = self.model.loss(s_arc, s_rel, arcs, rels, mask, self.args.partial)
+            #loss = self.model.margin_loss(s_arc, s_rel, arcs, rels, mask, self.args.partial)
             arc_preds, rel_preds = self.model.decode(s_arc, s_rel, mask, self.args.tree, self.args.proj)
             if self.args.partial:
                 mask &= arcs.ge(0)

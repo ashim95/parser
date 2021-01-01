@@ -236,6 +236,53 @@ class BiaffineDependencyModel(nn.Module):
 
         return arc_loss + rel_loss
 
+    def margin_loss(self, s_arc, s_rel, arcs, rels, mask, partial=False):
+
+        # First Calculate energy of predicted tree and gold tree
+        # Then count number of different edges in predicted and gold set
+        # Also calculate margin loss for labels of arcs
+        # Remember to mask over energy of root token (0)
+
+
+        with torch.no_grad():
+            arc_preds, rel_preds = self.decode(-s_arc, -s_rel, mask, tree=True)
+
+        s_arc, arcs = s_arc[mask], arcs[mask]
+        s_rel, rels = s_rel[mask], rels[mask]
+        arc_preds = arc_preds[mask]
+        rel_preds = rel_preds[mask]
+
+        gold_rel_scores = torch.sum(s_rel[torch.arange(len(arcs)), arcs, rels])
+        pred_rel_scores = torch.sum(s_rel[torch.arange(len(arcs)), arcs, rel_preds])
+        num_diff_labels = torch.sum(torch.ne(rels, rel_preds))
+
+        pred_arc_scores = torch.sum(s_arc[torch.arange(len(arc_preds)), arc_preds])
+        gold_arc_scores = torch.sum(s_arc[torch.arange(len(arcs)), arcs])
+        num_diff_arcs = torch.sum(torch.ne(arc_preds, arcs))
+        #print('\n')
+        #print(gold_arc_scores.item(), pred_arc_scores.item())
+        #print(arc_preds)
+        #print(arcs)
+        #print(num_diff_arcs.item())
+        #print(s_arc)
+        #s
+        if num_diff_arcs.item() == 0:
+            arc_loss = torch.tensor(0.0).to(mask.device)
+        else:
+            #arc_loss = torch.max(torch.tensor(0.0).to(mask.device), num_diff_arcs + gold_arc_scores - pred_arc_scores)
+            arc_loss = -gold_arc_scores + pred_arc_scores
+        #print(arc_loss)
+
+        if num_diff_labels.item() == 0:
+            label_loss = torch.tensor(0.0).to(mask.device)
+        else:
+            #label_loss = torch.max(torch.tensor(0.0).to(mask.device), num_diff_labels + gold_rel_scores - pred_rel_scores)
+            label_loss = torch.max(torch.tensor(0.0).to(mask.device), 1 + gold_rel_scores - pred_rel_scores)
+
+        #return arc_loss + label_loss
+        return arc_loss
+
+
     def decode(self, s_arc, s_rel, mask, tree=False, proj=False):
         r"""
         Args:
