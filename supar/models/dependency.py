@@ -245,7 +245,7 @@ class BiaffineDependencyModel(nn.Module):
 
 
         with torch.no_grad():
-            arc_preds, rel_preds = self.decode(-s_arc, -s_rel, mask, tree=True)
+            arc_preds, rel_preds = self.decode(s_arc, s_rel, mask, tree=True)
 
         s_arc, arcs = s_arc[mask], arcs[mask]
         s_rel, rels = s_rel[mask], rels[mask]
@@ -266,11 +266,11 @@ class BiaffineDependencyModel(nn.Module):
         #print(num_diff_arcs.item())
         #print(s_arc)
         #s
-        if num_diff_arcs.item() == 0:
-            arc_loss = torch.tensor(0.0).to(mask.device)
-        else:
+        #if num_diff_arcs.item() == 0:
+        #    arc_loss = 0.0
+        #else:
             #arc_loss = torch.max(torch.tensor(0.0).to(mask.device), num_diff_arcs + gold_arc_scores - pred_arc_scores)
-            arc_loss = -gold_arc_scores + pred_arc_scores
+        arc_loss = -gold_arc_scores + pred_arc_scores
         #print(arc_loss)
 
         if num_diff_labels.item() == 0:
@@ -280,7 +280,7 @@ class BiaffineDependencyModel(nn.Module):
             label_loss = torch.max(torch.tensor(0.0).to(mask.device), 1 + gold_rel_scores - pred_rel_scores)
 
         #return arc_loss + label_loss
-        return arc_loss
+        return arc_loss/mask.shape[0]
 
 
     def decode(self, s_arc, s_rel, mask, tree=False, proj=False):

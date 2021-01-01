@@ -166,8 +166,7 @@ def chuliu_edmonds(s):
     # prevent self-loops
     s.diagonal()[1:].fill_(float('-inf'))
     # select heads with highest scores
-    s = -s
-    tree = s.argmin(-1)
+    tree = s.argmax(-1)
     # return the cycle finded by tarjan algorithm lazily
     cycle = next(tarjan(tree.tolist()[1:]), None)
     # if the tree has no cycles, then it is a MST
@@ -189,14 +188,14 @@ def chuliu_edmonds(s):
         # s(c->x) = max(s(x'->x)), x in noncycle and x' in cycle
         s_dep = s[noncycle][:, cycle]
         # find the best cycle head for each noncycle dependent
-        deps = s_dep.argmin(1)
+        deps = s_dep.argmax(1)
         # calculate the scores of cycle's potential heads
         # s(x->c) = max(s(x'->x) - s(a(x')->x') + s(cycle)), x in noncycle and x' in cycle
         #                                                    a(v) is the predecessor of v in cycle
         #                                                    s(cycle) = sum(s(a(v)->v))
         s_head = s[cycle][:, noncycle] - s_cycle.view(-1, 1) + s_cycle.sum()
         # find the best noncycle head for each cycle dependent
-        heads = s_head.argmin(0)
+        heads = s_head.argmax(0)
 
         contracted = torch.cat((noncycle, torch.tensor([-1])))
         # calculate the scores of contracted graph
